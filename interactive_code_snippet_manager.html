@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CodeVault — Interactive Code Snippet Manager</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family: Inter, ui-sans-serif, system-ui, sans-serif; }
+    .glass { background: rgba(255,255,255,.82); backdrop-filter: blur(12px); }
+    .code-font { font-family: Consolas, Monaco, monospace; }
+    .toast { animation: slide .25s ease-out; }
+    @keyframes slide { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+  </style>
+</head>
+<body class="min-h-screen bg-slate-50 text-slate-900">
+  <header class="sticky top-0 z-20 border-b bg-white/90 backdrop-blur">
+    <div class="mx-auto flex max-w-7xl items-center justify-between px-5 py-4">
+      <div>
+        <h1 class="text-2xl font-extrabold tracking-tight">Code<span class="text-indigo-600">Vault</span></h1>
+        <p class="text-xs text-slate-500">Interactive Code Snippet Manager</p>
+      </div>
+      <button onclick="openModal()" class="rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow hover:bg-indigo-700">
+        + New Snippet
+      </button>
+    </div>
+  </header>
+
+  <main class="mx-auto max-w-7xl px-5 py-8">
+    <section class="mb-7 rounded-3xl bg-gradient-to-br from-indigo-700 to-violet-600 p-7 text-white shadow-xl">
+      <div class="max-w-3xl">
+        <span class="rounded-full bg-white/15 px-3 py-1 text-xs font-semibold">Web Fundamentals Project</span>
+        <h2 class="mt-4 text-3xl font-bold sm:text-4xl">Save, search, copy and organize your code.</h2>
+        <p class="mt-3 text-indigo-100">A simple client-side snippet library inspired by the project's interactive, user-friendly approach.</p>
+      </div>
+    </section>
+
+    <section class="mb-6 grid gap-4 sm:grid-cols-3">
+      <div class="glass rounded-2xl border p-5"><p class="text-sm text-slate-500">Total Snippets</p><p id="total" class="mt-1 text-3xl font-bold">0</p></div>
+      <div class="glass rounded-2xl border p-5"><p class="text-sm text-slate-500">Favorites</p><p id="favorites" class="mt-1 text-3xl font-bold">0</p></div>
+      <div class="glass rounded-2xl border p-5"><p class="text-sm text-slate-500">Languages</p><p id="languages" class="mt-1 text-3xl font-bold">0</p></div>
+    </section>
+
+    <section class="mb-6 flex flex-col gap-3 sm:flex-row">
+      <input id="search" oninput="render()" placeholder="Search snippets, tags or code..." class="w-full rounded-xl border bg-white px-4 py-3 outline-none focus:ring-2 focus:ring-indigo-500" />
+      <select id="filter" onchange="render()" class="rounded-xl border bg-white px-4 py-3">
+        <option value="all">All languages</option>
+        <option>JavaScript</option><option>Python</option><option>HTML</option><option>CSS</option><option>Java</option>
+      </select>
+    </section>
+
+    <div id="empty" class="hidden rounded-2xl border border-dashed bg-white p-12 text-center text-slate-500">
+      <p class="text-lg font-semibold">No snippets found.</p>
+      <p class="mt-1 text-sm">Create a snippet or change your search/filter.</p>
+    </div>
+    <section id="grid" class="grid gap-5 md:grid-cols-2 xl:grid-cols-3"></section>
+  </main>
+
+  <div id="modal" class="fixed inset-0 z-40 hidden items-center justify-center bg-slate-950/50 p-5">
+    <div class="w-full max-w-2xl rounded-3xl bg-white p-6 shadow-2xl">
+      <div class="flex items-center justify-between">
+        <h3 class="text-xl font-bold">Create New Snippet</h3>
+        <button onclick="closeModal()" class="text-2xl text-slate-400">&times;</button>
+      </div>
+      <div class="mt-5 grid gap-4">
+        <input id="title" placeholder="Snippet title" class="rounded-xl border px-4 py-3" />
+        <div class="grid gap-4 sm:grid-cols-2">
+          <select id="language" class="rounded-xl border px-4 py-3">
+            <option>JavaScript</option><option>Python</option><option>HTML</option><option>CSS</option><option>Java</option>
+          </select>
+          <input id="tags" placeholder="Tags (comma separated)" class="rounded-xl border px-4 py-3" />
+        </div>
+        <textarea id="code" rows="10" placeholder="Paste or write your code here..." class="code-font rounded-xl border bg-slate-950 p-4 text-sm text-slate-100 outline-none"></textarea>
+        <div class="flex justify-end gap-3">
+          <button onclick="closeModal()" class="rounded-xl border px-4 py-2.5">Cancel</button>
+          <button onclick="addSnippet()" class="rounded-xl bg-indigo-600 px-5 py-2.5 font-semibold text-white">Save Snippet</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast" class="fixed bottom-5 right-5 hidden rounded-xl bg-slate-900 px-4 py-3 text-sm font-medium text-white shadow-lg"></div>
+
+<script>
+const starter = [
+ {id:1,title:"Debounce Function",language:"JavaScript",tags:["utility","async"],favorite:true,code:`function debounce(fn, delay) {
+  let timer;
+  return (...args) => {
+    clearTimeout(timer);
+    timer = setTimeout(() => fn(...args), delay);
+  };
+}`},
+ {id:2,title:"Reverse a String",language:"Python",tags:["string","beginner"],favorite:false,code:`def reverse_string(text):
+    return text[::-1]
+
+print(reverse_string("Hello"))`},
+ {id:3,title:"Responsive Card",language:"CSS",tags:["ui","responsive"],favorite:false,code:`.card {
+  max-width: 420px;
+  padding: 1.5rem;
+  border-radius: 1rem;
+  box-shadow: 0 10px 30px rgba(0,0,0,.08);
+}`},
+ {id:4,title:"HTML Button",language:"HTML",tags:["html","button"],favorite:true,code:`<button class="btn">
+  Click Me
+</button>`},
+ {id:5,title:"Array Sum",language:"JavaScript",tags:["array","basics"],favorite:false,code:`const numbers = [2, 4, 6, 8];
+const total = numbers.reduce((sum, n) => sum + n, 0);
+console.log(total);`}
+];
+
+let snippets = JSON.parse(localStorage.getItem("codevault")) || starter;
+
+function escapeHtml(s) {
+ return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));
+}
+function save(){ localStorage.setItem("codevault", JSON.stringify(snippets)); }
+function copyCode(id){
+ const s=snippets.find(x=>x.id===id);
+ navigator.clipboard.writeText(s.code).then(()=>toast("Code copied to clipboard!"));
+}
+function toggleFavorite(id){
+ const s=snippets.find(x=>x.id===id); s.favorite=!s.favorite; save(); render();
+}
+function deleteSnippet(id){
+ if(confirm("Delete this snippet?")) { snippets=snippets.filter(x=>x.id!==id); save(); render(); toast("Snippet deleted."); }
+}
+function toast(msg){
+ const t=document.getElementById("toast"); t.textContent=msg; t.classList.remove("hidden"); t.classList.add("toast");
+ setTimeout(()=>t.classList.add("hidden"),1800);
+}
+function render(){
+ const q=document.getElementById("search").value.toLowerCase();
+ const lang=document.getElementById("filter").value;
+ const list=snippets.filter(s =>
+   (lang==="all" || s.language===lang) &&
+   (s.title.toLowerCase().includes(q) || s.code.toLowerCase().includes(q) || s.tags.join(" ").toLowerCase().includes(q))
+ );
+ document.getElementById("grid").innerHTML=list.map(s=>`
+ <article class="overflow-hidden rounded-2xl border bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-lg">
+   <div class="flex items-start justify-between border-b p-5">
+     <div>
+       <div class="mb-2 flex flex-wrap gap-2">
+         <span class="rounded-full bg-indigo-50 px-2.5 py-1 text-xs font-bold text-indigo-700">${s.language}</span>
+         ${s.tags.map(t=>`<span class="rounded-full bg-slate-100 px-2.5 py-1 text-xs text-slate-600">#${escapeHtml(t)}</span>`).join("")}
+       </div>
+       <h3 class="font-bold">${escapeHtml(s.title)}</h3>
+     </div>
+     <button onclick="toggleFavorite(${s.id})" class="text-xl ${s.favorite?'text-amber-400':'text-slate-300'}">${s.favorite?'★':'☆'}</button>
+   </div>
+   <pre class="code-font max-h-56 overflow-auto bg-slate-950 p-5 text-xs leading-6 text-slate-200"><code>${escapeHtml(s.code)}</code></pre>
+   <div class="flex gap-2 p-4">
+     <button onclick="copyCode(${s.id})" class="flex-1 rounded-lg bg-indigo-600 px-3 py-2 text-sm font-semibold text-white hover:bg-indigo-700">Copy Code</button>
+     <button onclick="deleteSnippet(${s.id})" class="rounded-lg border px-3 py-2 text-sm text-red-600 hover:bg-red-50">Delete</button>
+   </div>
+ </article>`).join("");
+ document.getElementById("empty").classList.toggle("hidden",list.length!==0);
+ document.getElementById("total").textContent=snippets.length;
+ document.getElementById("favorites").textContent=snippets.filter(s=>s.favorite).length;
+ document.getElementById("languages").textContent=new Set(snippets.map(s=>s.language)).size;
+}
+function openModal(){document.getElementById("modal").classList.replace("hidden","flex")}
+function closeModal(){document.getElementById("modal").classList.replace("flex","hidden")}
+function addSnippet(){
+ const title=document.getElementById("title").value.trim();
+ const code=document.getElementById("code").value.trim();
+ if(!title || !code){toast("Please enter a title and code.");return;}
+ snippets.unshift({
+   id:Date.now(), title, code,
+   language:document.getElementById("language").value,
+   tags:document.getElementById("tags").value.split(",").map(x=>x.trim()).filter(Boolean),
+   favorite:false
+ });
+ save(); render(); closeModal();
+ ["title","tags","code"].forEach(id=>document.getElementById(id).value="");
+ toast("Snippet saved successfully!");
+}
+render();
+</script>
+</body>
+</html>
